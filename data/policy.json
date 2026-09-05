@@ -1,0 +1,22 @@
+{
+  "version": "2026.1",
+  "currency": "INR",
+  "hard_limits": {
+    "max_single_po_inr": 50000000,
+    "min_vendor_rating": 3.5,
+    "reject_contract_risk_at_or_above": 5
+  },
+  "approval_tiers": [
+    {"up_to_inr": 200000,   "approver": null,               "note": "Auto-approved: within purchasing-card limit"},
+    {"up_to_inr": 1000000,  "approver": "Department Head",  "note": "Up to INR 10 lakh"},
+    {"up_to_inr": 5000000,  "approver": "Finance Director", "note": "INR 10 lakh to 50 lakh"},
+    {"up_to_inr": 50000000, "approver": "CFO",              "note": "INR 50 lakh to 5 crore"}
+  ],
+  "vendor_rules": {
+    "non_preferred_requires_procurement_head_above_inr": 1000000,
+    "preferred_price_tolerance_pct": 10,
+    "contract_risk_requires_legal_at_or_above": 4,
+    "contract_risk_advisory_at": 3,
+    "missing_contract_requires_legal": true
+  }
+}

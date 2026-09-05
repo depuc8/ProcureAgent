@@ -1,0 +1,36 @@
+MASTER SUPPLY AGREEMENT
+Contract Ref: MSA-V0007
+Supplier: Atlas Hardware Solutions Pvt Ltd ("Supplier")
+Buyer: Buyer Enterprise Ltd ("Buyer")
+Category: Laptops
+Estimated Annual Contract Value: INR 39,840,000
+
+1. SCOPE
+1.1 The Supplier shall supply laptops, accessories and related on-site support to the Buyer against
+purchase orders issued under this Agreement. Specifications, quantities and delivery dates are set out in
+each purchase order.
+1.2 The Supplier warrants that all goods are new, genuine and free from defects for 12 months from delivery.
+
+2. PRICE AND PAYMENT
+2.1 Payment Terms. The Buyer shall pay each undisputed invoice within 30 days of receipt of the invoice (Net 30). Overdue amounts attract interest at 1% per month.
+2.2 All prices are in Indian Rupees and exclusive of GST.
+
+3. TERM AND RENEWAL
+3.1 Initial Term. This Agreement commences on the Effective Date and continues for 12 months (the "Initial Term").
+3.2 Renewal. This Agreement shall automatically renew for successive renewal terms of 36 months each unless either party gives written notice of non-renewal at least 120 days before the end of the then-current term.
+
+4. LIABILITY
+4.1 Liability Cap. The Supplier's aggregate liability under this Agreement is limited to 100% of the fees paid or payable in the twelve (12) months preceding the claim.
+4.2 Neither party is liable for indirect or consequential loss, except for fraud or wilful misconduct.
+
+5. TERMINATION
+5.1 Termination for Convenience. The Buyer may terminate this Agreement for convenience by giving 30 days' written notice. On termination for convenience the Buyer shall pay an early termination charge equal to 40% of the fees projected for the remainder of the then-current term.
+5.2 Either party may terminate immediately on written notice if the other party becomes insolvent.
+
+6. CONFIDENTIALITY AND DATA
+6.1 Each party shall keep the other's confidential information confidential for three years after the Term.
+6.2 The Supplier shall securely wipe or destroy any storage media returned under warranty.
+
+7. GENERAL
+7.1 This Agreement is governed by the laws of India and the courts of Bengaluru have exclusive jurisdiction.
+7.2 Exclusivity. During the Term the Buyer shall purchase not less than 80% of its laptop requirement from the Supplier.

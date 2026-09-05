@@ -1,0 +1,19 @@
+{
+  "_comment": "USD per 1M tokens, paid tier, standard (non-batch) text. Rates apply from the 'from' date. Keep in sync with the provider's pricing page; the cost numbers the system reports are only as current as this file.",
+  "currency": "USD",
+  "source": "https://aistudio.google.com/docs/pricing (retrieved 2026-11-18)",
+  "models": {
+    "gemini-3.8-flash": [
+      {"from": "2000-01-01", "input_per_m": 0.75, "output_per_m": 3.75, "cached_input_per_m": 0.075},
+      {"from": "2027-01-01", "input_per_m": 1.50, "output_per_m": 7.50, "cached_input_per_m": 0.15}
+    ],
+    "gemini-3.6-flash": [
+      {"from": "2000-01-01", "input_per_m": 0.75, "output_per_m": 3.75, "cached_input_per_m": 0.075},
+      {"from": "2027-01-01", "input_per_m": 1.50, "output_per_m": 7.50, "cached_input_per_m": 0.15}
+    ],
+    "gemini-3.5-flash-lite": [
+      {"from": "2000-01-01", "input_per_m": 0.30, "output_per_m": 2.50, "cached_input_per_m": 0.03}
+    ]
+  },
+  "default_model": "gemini-3.8-flash"
+}
