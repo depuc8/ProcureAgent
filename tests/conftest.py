@@ -39,3 +39,21 @@ def laptop_request(ctx):
 
     save_request("Laptops", 50, 4_000_000, 21, ctx)
     return ctx
+
+
+# ---- OpenTelemetry: one in-memory exporter for the whole session ------------------------
+from opentelemetry import trace  # noqa: E402
+from opentelemetry.sdk.trace import TracerProvider  # noqa: E402
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor  # noqa: E402
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter  # noqa: E402
+
+_EXPORTER = InMemorySpanExporter()
+_provider = TracerProvider()
+_provider.add_span_processor(SimpleSpanProcessor(_EXPORTER))
+trace.set_tracer_provider(_provider)
+
+
+@pytest.fixture
+def spans() -> InMemorySpanExporter:
+    _EXPORTER.clear()
+    return _EXPORTER
