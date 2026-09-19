@@ -65,6 +65,13 @@ class DefaultSink:
         self._lock = threading.Lock()
         self._bq = None
 
+    # Agent Engine cloudpickles the app: locks and clients are rebuilt on the server, not shipped.
+    def __getstate__(self) -> dict:
+        return {}
+
+    def __setstate__(self, _state: dict) -> None:
+        self.__init__()
+
     def emit(self, record: dict) -> None:
         s = get_settings()
         try:

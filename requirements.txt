@@ -1,0 +1,8 @@
+# Runtime dependencies for the Cloud Run API image (the same set the local venv uses).
+google-adk>=2.14,<3
+google-cloud-aiplatform[agent_engines,adk]>=1.144
+google-cloud-bigquery>=3.25
+google-cloud-secret-manager>=2.20
+opentelemetry-exporter-otlp-proto-http>=1.30
+fastapi>=0.115
+uvicorn>=0.30

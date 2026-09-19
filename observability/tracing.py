@@ -1,7 +1,7 @@
 """OpenTelemetry -> Google Cloud Trace.
 
-Uses ADK's own exporter helpers (google.adk.telemetry.google_cloud) so ADK's spans
-and ours land in one trace. Exporting is opt-in (OTEL_TO_CLOUD_TRACE=true) so tests and
+Uses ADK's own exporter helpers (google.adk.telemetry.google_cloud), which push OTLP/HTTP to
+telemetry.googleapis.com (it lands in Cloud Trace), so ADK's spans and ours land in one trace. Exporting is opt-in (OTEL_TO_CLOUD_TRACE=true) so tests and
 offline runs never need credentials.
 
 Other runtimes configure tracing themselves, and the TelemetryPlugin works with
