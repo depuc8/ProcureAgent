@@ -25,3 +25,8 @@ testpaths = ["tests"]
 markers = [
   "live: calls real Gemini / GCP; skipped unless PROCURE_RUN_LIVE=1",
 ]
+
+# The repo is run from its root (adk web ., uvicorn api.main:app), not installed as a library;
+# this stops setuptools' flat-layout auto-discovery from refusing the several top-level packages.
+[tool.setuptools]
+packages = []
