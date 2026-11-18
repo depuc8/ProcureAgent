@@ -113,6 +113,9 @@ class BigQueryVendorRepository:
         """Returns (sql, params). Public so tests can assert nothing is interpolated."""
         from google.cloud import bigquery as bq
 
+        # NB: BigQuery treats an *empty* array parameter as NULL, so ARRAY_LENGTH(@required_certs) is NULL
+        # (not 0) when no certification is required. COALESCE keeps the "no filter" case matching every row;
+        # without it this query returned zero vendors for every request without a certification filter.
         sql = f"""
             SELECT {_COLUMNS}
             FROM `{table}`
@@ -124,7 +127,7 @@ class BigQueryVendorRepository:
               AND (NOT @contract_only OR contract_on_file)
               AND vendor_id NOT IN UNNEST(@exclude_ids)
               AND (SELECT COUNT(DISTINCT LOWER(c)) FROM UNNEST(certifications) AS c
-                   WHERE LOWER(c) IN UNNEST(@required_certs)) = ARRAY_LENGTH(@required_certs)
+                   WHERE LOWER(c) IN UNNEST(@required_certs)) = COALESCE(ARRAY_LENGTH(@required_certs), 0)
             ORDER BY unit_price_inr
             LIMIT 200
         """

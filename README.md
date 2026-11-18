@@ -64,14 +64,14 @@ dashboard/       Streamlit app, data layer, Looker Studio view SQL
 api/             FastAPI wrapper (Cloud Run) with Agent Engine / in-process backends
 deploy/          Agent Engine deploy + smoke query, GCP setup, Cloud Run deploy
 scripts/         benchmark
-tests/           162 tests; ScriptedLlm harness in tests/scripted.py
+tests/           163 tests; ScriptedLlm harness in tests/scripted.py
 ```
 
 ## Setup
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -e ".[dashboard,dev]"
-make test                 # 162 tests, no GCP needed
+make test                 # 163 tests, no GCP needed
 make web                  # adk web . → http://localhost:8000, pick "agents"
 ```
 
@@ -213,7 +213,7 @@ PROCURE_RUN_LIVE=1 python -m scripts.benchmark --live --runs 5     # prints a ta
 
 ## Tests
 
-`make test`: 162 passed, 3 skipped (the `live` tests: `make test-live`). The 10 end-to-end scenarios (`tests/test_e2e_scenarios.py`):
+`make test`: 163 passed, 7 skipped (the `live` tests: `make test-live`). The 10 end-to-end scenarios (`tests/test_e2e_scenarios.py`):
 
 | # | Scenario | Expected |
 |---|---|---|

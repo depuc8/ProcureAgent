@@ -157,3 +157,11 @@ def test_bigquery_repo_maps_rows_with_fake_client():
     got = repo.search(VendorFilter("Laptops"))
     assert got[0].vendor_id == "V9" and got[0].certifications == ("BIS",) and got[0].region == ""
     assert "`p.d.vendors`" in client.queries[0][0]
+
+
+def test_bigquery_query_handles_empty_array_parameters():
+    """BigQuery passes an empty ARRAY parameter as NULL; ARRAY_LENGTH(NULL) is NULL, which silently filtered
+    out every row when no certification was required (found by the live parity check)."""
+    sql, params = BigQueryVendorRepository.build_search_query("p.d.vendors", VendorFilter("Laptops"))
+    assert "COALESCE(ARRAY_LENGTH(@required_certs), 0)" in sql
+    assert {p.name: p.values for p in params if hasattr(p, "values")}["required_certs"] == []
