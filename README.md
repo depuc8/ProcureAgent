@@ -6,23 +6,6 @@ contracts, checks policy, and returns an approval-ready recommendation.
 
 > *"We need 50 laptops for new hires, budget ₹40L, delivery in 3 weeks"*
 
-## What has and has not been verified
-
-Built without Google Cloud credentials; the real-Gemini path has since been run through a free-tier
-Google AI Studio key. Status by layer:
-
-| Verified | **Not** verified |
-|---|---|
-| **Offline, automated (162 tests):** every tool, the policy engine, the contract scanner, ranking; the real ADK runtime end to end (AgentTool delegation, `LoopAgent` critic, session state, follow-up turns) with scripted models standing in for Gemini; 10 end-to-end scenarios; OTel spans + per-request metrics; API auth/validation; `adk web` discovery; the `AdkApp` pickles and the deploy config validates against the installed SDK | **Cost and latency on the default model:** measured only on `gemini-3.5-flash-lite`, 3 requests, with free-tier throttling inflating end-to-end time |
-| **Live Gemini:** with `gemini-3.5-flash-lite`, the demo request, the over-budget request and the follow-up swap each passed (all three together in one run), and a 3-request live benchmark completed (cost, TTFT, tokens/sec measured; see Cost and latency) | **Model coverage:** `gemini-3.8-flash` (the default) kept returning 503 "high demand"; `gemini-3.6-flash` works but its free tier allows 20 requests/day against ~30 per request, so neither has run end to end. One pass per test is not a reliability measure |
-| | **BigQuery:** SQL construction is tested with a fake client; never run against a live table |
-| | **Vertex AI auth, Agent Engine deployment, Cloud Run, Secret Manager, Cloud Trace export** |
-
-The live run found a real bug the scripted tests could not: with the real model, the planner
-recommended a vendor that policy had rejected. `set_recommended_vendor` now refuses it in code (see below).
-Nothing in this repo reports a made-up model cost: the cost figures are computed from token counts
-Gemini actually reported.
-
 ## Architecture
 
 ```mermaid
