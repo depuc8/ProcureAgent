@@ -24,9 +24,26 @@ def test_session_summary_round_trip(laptop_request):
 
 
 def test_set_recommended_vendor_must_be_on_shortlist(laptop_request):
-    sl = search_vendors(laptop_request, require_contract_on_file=True)["shortlist"]
+    search_vendors(laptop_request, require_contract_on_file=True)
     assert set_recommended_vendor("V9999", laptop_request)["status"] == "error"
-    assert set_recommended_vendor(sl[0]["vendor_id"], laptop_request)["status"] == "ok"
+
+
+def test_cannot_recommend_unchecked_or_rejected_vendor(laptop_request):
+    sl = search_vendors(laptop_request, require_contract_on_file=True)["shortlist"]
+    vid = sl[0]["vendor_id"]
+    assert set_recommended_vendor(vid, laptop_request)["status"] == "error"          # never policy-checked
+    laptop_request.state["approval_decisions"] = {vid: {"decision": "reject", "reasons": ["exceeds the stated budget"]}}
+    out = set_recommended_vendor(vid, laptop_request)
+    assert out["status"] == "refused" and out["reasons"] == ["exceeds the stated budget"]
+    assert not laptop_request.state.get("recommended_vendor_id")
+
+
+def test_can_recommend_vendor_that_passed_policy(laptop_request):
+    sl = search_vendors(laptop_request, require_contract_on_file=True)["shortlist"]
+    vid = sl[0]["vendor_id"]
+    laptop_request.state["approval_decisions"] = {vid: {"decision": "needs_approval", "reasons": []}}
+    assert set_recommended_vendor(vid, laptop_request)["status"] == "ok"
+    assert laptop_request.state["recommended_vendor_id"] == vid
 
 
 def test_draft_lifecycle(ctx):

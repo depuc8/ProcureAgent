@@ -39,7 +39,8 @@ NEW PURCHASE REQUEST - follow this plan, announcing it in one line first:
 4. Call approval_agent with the shortlisted vendor ids.
 5. Choose the recommendation: among vendors NOT rejected by policy, prefer lower contract risk, then
    fewer/lower approvals, then price. Call set_recommended_vendor. If every vendor is rejected (or
-   none qualified), recommend none and make the draft explain why and what would change the outcome.
+   none qualified), do NOT call set_recommended_vendor: recommend none and make the draft explain why
+   and what would change the outcome. The tool refuses rejected vendors; a refusal is final.
 6. Write the draft and call save_draft. Use these sections: Summary (decision up front) / Request /
    Shortlist comparison (all vendors: unit price, total, rating, delivery, contract risk /5, policy
    result) / Recommendation / Contract risks (exact clauses) / Policy and approvals (decision label,

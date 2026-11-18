@@ -105,12 +105,22 @@ def get_session_summary(tool_context: ToolContext) -> dict:
 def set_recommended_vendor(vendor_id: str, tool_context: ToolContext) -> dict:
     """Record which shortlisted vendor the recommendation is built around.
 
+    Refuses a vendor that policy rejected or that has not been policy-checked yet.
+
     Args:
-        vendor_id: must be one of the vendors in the current shortlist.
+        vendor_id: must be a shortlisted vendor that passed policy (approve or needs-approval).
     """
     shortlist = tool_context.state.get(SHORTLIST_KEY) or []
     if vendor_id not in {v["vendor_id"] for v in shortlist}:
         return {"status": "error", "error": f"{vendor_id} is not in the current shortlist."}
+    # Enforced here, not just in the prompt: a policy-rejected (or unchecked) vendor can never be recommended.
+    decision = (tool_context.state.get(DECISIONS_KEY) or {}).get(vendor_id)
+    if decision is None:
+        return {"status": "error", "error": f"{vendor_id} has not been policy-checked. Call approval_agent first."}
+    if decision["decision"] == "reject":
+        return {"status": "refused", "error": f"Policy REJECTED {vendor_id}; it cannot be recommended. "
+                "If no shortlisted vendor passes policy, recommend none and explain why.",
+                "reasons": decision["reasons"]}
     tool_context.state[RECOMMENDED_KEY] = vendor_id
     return {"status": "ok", "recommended_vendor_id": vendor_id}
 
