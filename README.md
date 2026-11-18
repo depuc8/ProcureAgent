@@ -8,18 +8,20 @@ contracts, checks policy, and returns an approval-ready recommendation.
 
 ## What has and has not been verified
 
-This was built in an environment with **no Google Cloud credentials**. So:
+Built without Google Cloud credentials; the real-Gemini path has since been run through a free-tier
+Google AI Studio key. Status by layer:
 
-| Verified here (automated, 153 tests) | **Not** exercised against real services |
+| Verified | **Not** verified |
 |---|---|
-| Every tool, the policy engine, the contract scanner, ranking | Real Gemini calls (model quality, latency, TTFT, tokens/sec, **cost**) |
-| The real ADK runtime end to end: AgentTool delegation, `LoopAgent` critic, session state, follow-up turns | BigQuery (SQL construction is tested with a fake client; never run against a live table) |
-| 10 end-to-end scenarios with scripted models standing in for Gemini | Agent Engine deployment, Cloud Run, Secret Manager, Cloud Trace export |
-| OTel spans + per-request metrics, API auth/validation, `adk web` discovery | |
-| The `AdkApp` pickles and the deploy config validates against the installed SDK | |
+| **Offline, automated (162 tests):** every tool, the policy engine, the contract scanner, ranking; the real ADK runtime end to end (AgentTool delegation, `LoopAgent` critic, session state, follow-up turns) with scripted models standing in for Gemini; 10 end-to-end scenarios; OTel spans + per-request metrics; API auth/validation; `adk web` discovery; the `AdkApp` pickles and the deploy config validates against the installed SDK | **Real-model cost and latency:** TTFT, tokens/sec and cost per request have not been measured live (`make benchmark-live`) |
+| **Live Gemini (3 tests):** with `gemini-3.5-flash-lite`, the demo request, the over-budget request and the follow-up swap each passed, all three together in one run | **Model coverage:** `gemini-3.8-flash` (the default) returned 503 "high demand" when tried, so it has not been run end to end; `gemini-3.6-flash` was only probed with a one-word prompt. One pass per test is not a reliability measure |
+| | **BigQuery:** SQL construction is tested with a fake client; never run against a live table |
+| | **Vertex AI auth, Agent Engine deployment, Cloud Run, Secret Manager, Cloud Trace export** |
 
-So the cost/latency table below is split honestly into what was measured and what needs a live run
-(`make benchmark-live`). Nothing in this repo reports a made-up model cost.
+The live run found a real bug the scripted tests could not: with the real model, the planner
+recommended a vendor that policy had rejected. `set_recommended_vendor` now refuses it in code (see below).
+The cost/latency section is split into what was measured and what needs a live run. Nothing in this repo
+reports a made-up model cost.
 
 ## Architecture
 
@@ -52,7 +54,7 @@ flowchart TD
 
 * **Vendor search**: ranking uses explicit weights (price .40, rating .30, delivery .20, +.05 preferred, +.05 contract on file). The agent explains the shortlist; it cannot reorder it. If fewer than 3 vendors qualify, the tool returns diagnostics (how many would qualify with each constraint dropped) and the agent relaxes one constraint at a time and says which.
 * **Contract review**: a clause scanner rates auto-renewal, liability cap, payment terms and termination 1–5 against a documented rubric (`tools/contract_scanner.py`). The agent reads the full text for what a regex cannot see (exclusivity, unilateral price changes) and may move the score by **at most ±1**; `record_contract_findings` clamps anything more.
-* **Approval**: `tools/policy_engine.py` returns `approve` / `needs-approval-from: X, Y` / `reject`. The agent reads vendor price, budget and risk **from state and the database, not from arguments**, so it cannot misstate a figure to change the outcome, and is told never to override the decision.
+* **Approval**: `tools/policy_engine.py` returns `approve` / `needs-approval-from: X, Y` / `reject`. The agent reads vendor price, budget and risk **from state and the database, not from arguments**, so it cannot misstate a figure to change the outcome, and is told never to override the decision. `set_recommended_vendor` also **refuses** any vendor that policy rejected or that was never checked, so "never recommend a rejected vendor" is enforced in code, not just the prompt (a live run showed the prompt alone was not enough).
 * **Critic loop**: the critic combines `check_draft_facts` (missing fields, decision contradicting the policy engine, vendor ids not on the shortlist, rupee figures that appear nowhere in session data) with LLM judgement, then calls `submit_review`. Empty issues → `escalate` ends the loop; otherwise the reviser rewrites. `max_iterations=3`.
 
 ### Policy (data/policy.json)
@@ -79,21 +81,32 @@ dashboard/       Streamlit app, data layer, Looker Studio view SQL
 api/             FastAPI wrapper (Cloud Run) with Agent Engine / in-process backends
 deploy/          Agent Engine deploy + smoke query, GCP setup, Cloud Run deploy
 scripts/         benchmark
-tests/           153 tests; ScriptedLlm harness in tests/scripted.py
+tests/           162 tests; ScriptedLlm harness in tests/scripted.py
 ```
 
 ## Setup
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -e ".[dashboard,dev]"
-make test                 # 153 tests, no GCP needed
+make test                 # 162 tests, no GCP needed
 make web                  # adk web . → http://localhost:8000, pick "agents"
 ```
 
-`adk web` needs Gemini access. Without credentials it starts, but model calls fail. Copy
-`.env.example` to `.env` and set `GOOGLE_CLOUD_PROJECT` / `GOOGLE_CLOUD_LOCATION` (Vertex AI, via
-`gcloud auth application-default login`). With `VENDOR_BACKEND=local` (default) vendors come from the
-in-memory synthetic set, so BigQuery is optional for local runs.
+`adk web` needs Gemini access; without it the UI starts but model calls fail. Copy `.env.example` to
+`.env` (gitignored; loaded automatically by `adk web`, the tests, the benchmark and the API) and pick one:
+
+* **AI Studio API key (quickest):** create a key at <https://aistudio.google.com/apikey>, then set
+  `GOOGLE_API_KEY=...` and `GOOGLE_GENAI_USE_VERTEXAI=FALSE`. This is the route the live tests were run on.
+* **Vertex AI:** set `GOOGLE_CLOUD_PROJECT` / `GOOGLE_CLOUD_LOCATION` and run
+  `gcloud auth application-default login`. No key, but it needs a project with billing. Untested here.
+
+With `VENDOR_BACKEND=local` (default) vendors come from the in-memory synthetic set, so BigQuery is optional locally.
+
+**Free-tier keys:** one request makes ~28 model calls and the free tier allows ~15 requests/minute per model, so
+unthrottled runs fail with `429 RESOURCE_EXHAUSTED`. Set `PROCURE_MAX_RPM=12` to throttle client-side (a full
+request then takes minutes). Models can also return `503` under load; switch with `PROCURE_MODEL`
+(e.g. `gemini-3.6-flash`, `gemini-3.5-flash-lite`). `make test-live` and `make benchmark-live` call the real model
+and consume quota.
 
 ### On Google Cloud
 
@@ -200,7 +213,7 @@ PROCURE_RUN_LIVE=1 python -m scripts.benchmark --live --runs 5     # prints a ta
 
 ## Tests
 
-`make test`: 153 passed, 3 skipped (the `live` tests: `make test-live`). The 10 end-to-end scenarios (`tests/test_e2e_scenarios.py`):
+`make test`: 162 passed, 3 skipped (the `live` tests: `make test-live`). The 10 end-to-end scenarios (`tests/test_e2e_scenarios.py`):
 
 | # | Scenario | Expected |
 |---|---|---|
@@ -219,6 +232,9 @@ Plus: the loop stops after exactly 3 rounds when the reviser never fixes, concur
 **The scripted models follow a fixed plan, so these tests prove the plumbing and the invariants, not that Gemini will choose the same steps**; the `live` tests check the invariants against the real model.
 
 ## Known limitations
+
+* Live coverage is thin: three tests, each passed once, on the cheapest model. Real-model behaviour can vary between runs; prompts may need tuning against `gemini-3.6-flash` / `gemini-3.8-flash`.
+* The throttle (`PROCURE_MAX_RPM`) keeps waiting out of model latency, but a throttled run's end-to-end time includes it, so do not read benchmark latency from a free-tier key as real speed.
 
 * `LoopAgent` is what was asked for and works, but ADK 2.x marks it deprecated in favour of `Workflow` (which cannot yet be a sub-agent of an `LlmAgent`). Expect to migrate.
 * The critic loop runs the critic up to 3 times and the reviser up to 3 times; the final revision is not re-reviewed, and the answer then says the review ended with open items.
