@@ -11,6 +11,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 
+# Local development: pick up a gitignored .env next to this file. Real environment variables win
+# (override=False), and on Agent Engine / Cloud Run there is no .env, so this is a no-op there.
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(ROOT / ".env", override=False)
+except ImportError:  # python-dotenv is optional
+    pass
+
 
 def _bool(name: str, default: bool = False) -> bool:
     return os.getenv(name, str(default)).strip().lower() in {"1", "true", "yes", "on"}
