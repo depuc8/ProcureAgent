@@ -6,6 +6,7 @@ from __future__ import annotations
 from google.adk.apps import App
 
 from agents.planner import build_planner
+from agents.ratelimit import RateLimitPlugin
 from observability.plugin import TelemetryPlugin
 from observability.tracing import setup_telemetry
 
@@ -13,4 +14,4 @@ setup_telemetry()
 
 root_agent = build_planner()
 
-app = App(name="agents", root_agent=root_agent, plugins=[TelemetryPlugin()])
+app = App(name="agents", root_agent=root_agent, plugins=[RateLimitPlugin(), TelemetryPlugin()])

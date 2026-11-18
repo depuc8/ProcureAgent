@@ -8,6 +8,7 @@ import os
 import pytest
 
 from agents.planner import build_planner
+from agents.ratelimit import RateLimitPlugin
 from observability.sink import ListSink
 from observability.plugin import TelemetryPlugin
 from google.adk.apps import App
@@ -20,7 +21,7 @@ pytestmark = [pytest.mark.live,
 
 async def ask(prompts):
     sink = ListSink()
-    app = App(name="procure_live", root_agent=build_planner(), plugins=[TelemetryPlugin(sink=sink)])
+    app = App(name="procure_live", root_agent=build_planner(), plugins=[RateLimitPlugin(), TelemetryPlugin(sink=sink)])
     runner = InMemoryRunner(app=app)
     sid = (await runner.session_service.create_session(app_name=app.name, user_id="live")).id
     final = ""
