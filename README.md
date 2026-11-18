@@ -13,15 +13,15 @@ Google AI Studio key. Status by layer:
 
 | Verified | **Not** verified |
 |---|---|
-| **Offline, automated (162 tests):** every tool, the policy engine, the contract scanner, ranking; the real ADK runtime end to end (AgentTool delegation, `LoopAgent` critic, session state, follow-up turns) with scripted models standing in for Gemini; 10 end-to-end scenarios; OTel spans + per-request metrics; API auth/validation; `adk web` discovery; the `AdkApp` pickles and the deploy config validates against the installed SDK | **Real-model cost and latency:** TTFT, tokens/sec and cost per request have not been measured live (`make benchmark-live`) |
-| **Live Gemini (3 tests):** with `gemini-3.5-flash-lite`, the demo request, the over-budget request and the follow-up swap each passed, all three together in one run | **Model coverage:** `gemini-3.8-flash` (the default) returned 503 "high demand" when tried, so it has not been run end to end; `gemini-3.6-flash` was only probed with a one-word prompt. One pass per test is not a reliability measure |
+| **Offline, automated (162 tests):** every tool, the policy engine, the contract scanner, ranking; the real ADK runtime end to end (AgentTool delegation, `LoopAgent` critic, session state, follow-up turns) with scripted models standing in for Gemini; 10 end-to-end scenarios; OTel spans + per-request metrics; API auth/validation; `adk web` discovery; the `AdkApp` pickles and the deploy config validates against the installed SDK | **Cost and latency on the default model:** measured only on `gemini-3.5-flash-lite`, 3 requests, with free-tier throttling inflating end-to-end time |
+| **Live Gemini:** with `gemini-3.5-flash-lite`, the demo request, the over-budget request and the follow-up swap each passed (all three together in one run), and a 3-request live benchmark completed (cost, TTFT, tokens/sec measured; see Cost and latency) | **Model coverage:** `gemini-3.8-flash` (the default) kept returning 503 "high demand"; `gemini-3.6-flash` works but its free tier allows 20 requests/day against ~30 per request, so neither has run end to end. One pass per test is not a reliability measure |
 | | **BigQuery:** SQL construction is tested with a fake client; never run against a live table |
 | | **Vertex AI auth, Agent Engine deployment, Cloud Run, Secret Manager, Cloud Trace export** |
 
 The live run found a real bug the scripted tests could not: with the real model, the planner
 recommended a vendor that policy had rejected. `set_recommended_vendor` now refuses it in code (see below).
-The cost/latency section is split into what was measured and what needs a live run. Nothing in this repo
-reports a made-up model cost.
+Nothing in this repo reports a made-up model cost: the cost figures are computed from token counts
+Gemini actually reported.
 
 ## Architecture
 
@@ -102,7 +102,7 @@ make web                  # adk web . → http://localhost:8000, pick "agents"
 
 With `VENDOR_BACKEND=local` (default) vendors come from the in-memory synthetic set, so BigQuery is optional locally.
 
-**Free-tier keys:** one request makes ~28 model calls and the free tier allows ~15 requests/minute per model, so
+**Free-tier keys:** one request makes ~30 model calls (measured: 27–32) and the free tier allows ~15 requests/minute per model, so
 unthrottled runs fail with `429 RESOURCE_EXHAUSTED`. Set `PROCURE_MAX_RPM=12` to throttle client-side (a full
 request then takes minutes). Models can also return `503` under load; switch with `PROCURE_MODEL`
 (e.g. `gemini-3.6-flash`, `gemini-3.5-flash-lite`). `make test-live` and `make benchmark-live` call the real model
@@ -203,9 +203,26 @@ Note what it shows: the cheapest vendor is rejected on contract risk, and the re
 | `scan_contract_clauses`, p50 / p95 | 0.163 ms / 0.173 ms |
 | `check_policy`, p50 / p95 | 0.055 ms / 0.059 ms |
 
-**Not measured** (needs credentials): model latency, TTFT, tokens/sec, tokens per request and cost per request. A full request makes ~28 model calls
-(planner ≈ 12 turns, plus sub-agents and the critic), so expect latency to be dominated by the model. Cost depends on prompt sizes, which only a live run reveals; I will not guess a figure.
-Get the real numbers with:
+**Measured live** (`make benchmark-live`; `gemini-3.5-flash-lite` through a free-tier AI Studio key, `PROCURE_MAX_RPM=12`; 3 requests: the demo, the over-budget case and the 2-laptop case; every request completed with status ok):
+
+| Metric | Mean | Range over the 3 requests |
+|---|---|---|
+| Model calls / tool calls per request | 30 / 29 | 27–32 / 26–31 |
+| Time spent in the model per request | 73 s | 58–89 s |
+| Time to first token (request start → first chunk of the first model call, streamed) | 2.4 s | 2.0–3.3 s |
+| Tokens/sec (output tokens ÷ time in the model) | 54 | 44–62 |
+| Tokens per request (in + out) | 97,846 | 85,087 / 81,429 / 115,372 in; 3,285–4,479 out |
+| **Cost per request** | **$0.0335** | $0.030–$0.039 |
+| End-to-end latency, p50 / p95 | 143 s / 154 s | 143–156 s |
+
+How to read these:
+
+* **Cost is computed, not billed.** It is the token counts Gemini reported, priced with the `gemini-3.5-flash-lite` rates in `data/pricing.json` ($0.30 in / $2.50 out per 1M, cached input $0.03). On the free tier nothing is charged.
+* **End-to-end latency is inflated by the throttle.** The model itself accounted for ~73 s of the ~147 s; the rest is almost entirely `PROCURE_MAX_RPM=12` making calls wait (offline orchestration overhead is ~65 ms, so that is an inference, not a separate measurement). Do not read 143 s as the product's speed.
+* **Input tokens dominate**: ~98 k per request across ~30 calls, because each call re-sends the planner's instructions, state and tool schemas. That is where a cheaper design (shorter prompts, context caching) would pay off.
+* **One model, three requests.** Not the default model (`gemini-3.8-flash` returned 503 under load) and too few runs for a trustworthy p95.
+
+**Still not measured:** the same numbers for `gemini-3.8-flash` / `gemini-3.6-flash`. `gemini-3.6-flash` on the free tier allows only 20 requests per *day*, and one request needs ~30 calls, so it cannot complete one. Paid-tier billing removes that cap:
 
 ```bash
 PROCURE_RUN_LIVE=1 python -m scripts.benchmark --live --runs 5     # prints a table, appends to the dashboard's JSONL
